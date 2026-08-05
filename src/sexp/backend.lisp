@@ -39,6 +39,7 @@
      (cons :object
            (loop for (key child) on value by #'cddr
                  collect (cons (%key-string key) (%to-sexpr child)))))
+    ((stringp value) value)
     ((vectorp value)
      (map 'vector #'%to-sexpr value))
     ((consp value)
@@ -65,6 +66,7 @@
      (%entries-to-hash value))
     ((and (consp value) (%plist-p value))
      (%plist-to-hash value))
+    ((stringp value) value)
     ((vectorp value)
      (map 'vector #'%from-sexpr value))
     ((consp value)
