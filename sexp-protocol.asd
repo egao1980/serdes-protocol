@@ -1,5 +1,5 @@
 (defsystem "sexp-protocol"
-  :version "0.1.0"
+  :version "0.2.0"
   :description "S-expression backend for serdes-protocol"
   :author "egao1980"
   :license "MIT"

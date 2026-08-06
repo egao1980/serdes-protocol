@@ -14,6 +14,8 @@
            #:serdes-character-output-stream
            #:serdes-binary-input-stream
            #:serdes-binary-output-stream
+           #:underlying-stream
+           #:stream-backend
            #:*serdes-format*
            #:*serdes-backend*
            #:*serdes-formats*
@@ -24,6 +26,23 @@
            #:encode
            #:decode
            #:encode-to-octets
-           #:decode-octets))
+           #:decode-octets
+           #:backend-make-input-stream
+           #:backend-make-output-stream
+           #:make-input-stream
+           #:make-output-stream
+           #:stream-encode-value
+           #:stream-decode-value
+           #:map-jsonl
+           #:do-jsonl
+           #:serdes-event-parser
+           #:event-parser-backend
+           #:event-parser-source
+           #:backend-make-event-parser
+           #:parse-next-event
+           #:parse-next-element
+           #:make-event-parser
+           #:with-event-parser
+           #:map-events))
 
 (in-package #:serdes-protocol)
