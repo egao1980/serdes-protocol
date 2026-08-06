@@ -12,28 +12,6 @@
 (defclass serdes-backend () ()
   (:documentation "Base class for serdes-protocol backends."))
 
-(defclass serdes-input-stream () ()
-  (:documentation "Marker class for future serdes input Gray streams."))
-
-(defclass serdes-output-stream () ()
-  (:documentation "Marker class for future serdes output Gray streams."))
-
-(defclass serdes-character-input-stream
-    (serdes-input-stream trivial-gray-streams:fundamental-character-input-stream)
-  ())
-
-(defclass serdes-character-output-stream
-    (serdes-output-stream trivial-gray-streams:fundamental-character-output-stream)
-  ())
-
-(defclass serdes-binary-input-stream
-    (serdes-input-stream trivial-gray-streams:fundamental-binary-input-stream)
-  ())
-
-(defclass serdes-binary-output-stream
-    (serdes-output-stream trivial-gray-streams:fundamental-binary-output-stream)
-  ())
-
 (defgeneric backend-encode (backend value &key stream)
   (:documentation "Encode VALUE, returning a string unless STREAM is supplied."))
 
