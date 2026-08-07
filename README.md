@@ -1,36 +1,27 @@
 # serdes-protocol
 
-Minimal CLOS serialization/deserialization protocol for cl-stack logging and structured payloads.
+CLOS **serialize / deserialize** protocol for [cl-stack](https://github.com/egao1980/cl-stack) — whole-value, Gray streams, JSONL, event/pull parse.
 
-| System | Role |
-|--------|------|
-| `serdes-protocol` | Format registry, backend generics, conditions, `encode` / `decode` |
-| `sexp-protocol` | Built-in readable S-expression format backend (`:sexp`) |
+| System | Role | OCI |
+|--------|------|-----|
+| `serdes-protocol` (`stack-serdes`) | Format registry, Gray streams, JSONL, event GFs | **0.2.0** |
+| `sexp-protocol` | `:sexp` implementor (`prin1` / `read`, `*read-eval*` nil) | **0.2.0** |
 
-Nick: `stack-serdes`.
+JSON implementor: [`json-protocol`](https://github.com/egao1980/json-protocol) **0.2.0** (hard-depends this package).
 
-## Quick use
+**Cookbook:** [serdes.md](https://github.com/egao1980/cl-stack/blob/main/docs/cookbooks/serdes.md) · Brief: [serdes.md](https://github.com/egao1980/cl-stack/blob/main/docs/capabilities/serdes.md)
 
 ```lisp
-(asdf:load-system "sexp-protocol")
-(sexp-protocol:use-sexp-backend)
+(asdf:load-system "json-backend-jzon")   ; registers :json
+(asdf:load-system "sexp-protocol")       ; registers :sexp
 
-(let ((record (make-hash-table :test 'equal)))
-  (setf (gethash "msg" record) "hello"
-        (gethash "null" record) :null)
-  (stack-serdes:encode record :format :sexp))
+(stack-serdes:encode ht :format :json)
+(stack-serdes:map-jsonl #'print source :format :json)
+(stack-serdes:make-event-parser "[1,2]" :format :json)
 ```
 
-Value mapping follows the cl-stack JSON shape: objects are string-key hash tables, arrays are vectors, and null is `:null`. The `:sexp` backend prints a readable S-expression representation with `prin1` and reads with `*read-eval*` bound to `nil`.
-
-## Local tests
-
-```sh
-CL_SOURCE_REGISTRY="$(pwd)//:" ros -e '(asdf:test-system "serdes-protocol")' -q
-```
-
-CI uses `scripts/ci-install.lisp` and `scripts/ci-test.lisp` with cl-repository-client and Quicklisp fallbacks for `babel`, `trivial-gray-streams`, and `rove`.
+Object streams without formats → [`io-protocol`](https://github.com/egao1980/io-protocol).
 
 ## License
 
-MIT -- see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
