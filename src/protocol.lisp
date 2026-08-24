@@ -68,10 +68,21 @@ Returns a string unless STREAM is supplied."
       (error 'serdes-decode-error
              :message (format nil "decode failed for ~S: ~A" format e)))))
 
+(defun %octet-vector-p (value)
+  (and (vectorp value)
+       (not (stringp value))
+       (let ((et (array-element-type value)))
+         (or (equal et '(unsigned-byte 8))
+             (subtypep et '(unsigned-byte 8))))))
+
 (defun encode-to-octets (value &key (format *serdes-format*))
-  "UTF-8 octets of (ENCODE VALUE :FORMAT FORMAT)."
-  (babel:string-to-octets (encode value :format format) :encoding :utf-8))
+  "Octets of VALUE. Binary formats may return octets from ENCODE (passed through);
+   text formats are UTF-8 encoded."
+  (let ((encoded (encode value :format format)))
+    (if (%octet-vector-p encoded)
+        encoded
+        (babel:string-to-octets encoded :encoding :utf-8))))
 
 (defun decode-octets (octets &key (format *serdes-format*))
-  "Decode UTF-8 OCTETS using FORMAT."
-  (decode (babel:octets-to-string octets :encoding :utf-8) :format format))
+  "Decode OCTETS using FORMAT. Backends accept octets or UTF-8 text."
+  (decode octets :format format))
