@@ -4,7 +4,7 @@
   :author "egao1980"
   :license "MIT"
   :depends-on ("babel" "trivial-gray-streams")
-  :properties (:cl-repo (:ci (:with ("sexp-protocol") :sources (("babel" :ql) ("trivial-gray-streams" :ql) ("rove" :ql)))))
+  :properties (:cl-repo (:ci (:with ("sexp-protocol"))))
   :serial t
   :pathname "src"
   :components ((:file "package")
