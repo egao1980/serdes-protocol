@@ -1,5 +1,5 @@
 (defsystem "serdes-protocol"
-  :version "0.2.1"
+  :version "0.2.2"
   :description "CLOS serialization protocol for cl-stack — whole-value + Gray/JSONL/events"
   :author "egao1980"
   :license "MIT"

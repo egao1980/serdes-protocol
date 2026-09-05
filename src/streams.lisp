@@ -102,15 +102,22 @@
     (t (error 'serdes-error
               :message (format nil "unsupported element-type ~S" element-type)))))
 
+(defun %default-element-type (format)
+  (if (format-binary-p format)
+      '(unsigned-byte 8)
+      'character))
+
 (defun make-input-stream (underlying &key (format *serdes-format*)
-                                       (element-type 'character))
-  (backend-make-input-stream (%backend-for format) underlying
-                             :element-type element-type))
+                                       (element-type nil element-type-p))
+  (backend-make-input-stream
+   (%backend-for format) underlying
+   :element-type (if element-type-p element-type (%default-element-type format))))
 
 (defun make-output-stream (underlying &key (format *serdes-format*)
-                                        (element-type 'character))
-  (backend-make-output-stream (%backend-for format) underlying
-                              :element-type element-type))
+                                        (element-type nil element-type-p))
+  (backend-make-output-stream
+   (%backend-for format) underlying
+   :element-type (if element-type-p element-type (%default-element-type format))))
 
 ;;; Value-at-a-time (JSONL / one-sexp-per-line)
 
