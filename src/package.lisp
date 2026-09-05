@@ -23,6 +23,11 @@
            #:find-backend
            #:backend-encode
            #:backend-decode
+           #:backend-media-type
+           #:backend-binary-p
+           #:format-media-type
+           #:format-binary-p
+           #:find-format-for-media-type
            #:encode
            #:decode
            #:encode-to-octets
