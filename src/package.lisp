@@ -6,6 +6,7 @@
            #:serdes-decode-error
            #:serdes-unknown-format
            #:serdes-error-message
+           #:serdes-error-cause
            #:serdes-unknown-format-format
            #:serdes-backend
            #:serdes-input-stream
