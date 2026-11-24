@@ -219,14 +219,37 @@ When ERRORP is true, signal SERDES-UNKNOWN-FORMAT when the registry has no backe
              *serdes-backend*)
         (find-backend normalized))))
 
+(defun %associated-restarts (condition fresh)
+  "The active restarts associated with CONDITION (CLHS 9.1.4.2.2) that apply
+to it, most recent first. FRESH is a condition that nothing is associated with
+yet.
+COMPUTE-RESTARTS given CONDITION also returns the restarts associated with no
+condition. These are removed: every restart that COMPUTE-RESTARTS returns for
+FRESH or for a plain CONDITION made here. A restart associated with CONDITION is
+visible for neither of them, so it stays. The one inexact case is a restart
+associated with no condition whose test accepts CONDITION and rejects both
+probes. It is kept, and so is hidden from other conditions while the caller's
+WITH-CONDITION-RESTARTS is in effect."
+  (let ((free (append (compute-restarts fresh)
+                      (compute-restarts (make-condition 'condition)))))
+    (remove-if (lambda (restart) (member restart free :test #'eq))
+               (compute-restarts condition))))
+
 (defun %translate-backend-error (condition type format)
   "Signal, with ERROR, a fresh TYPE (SERDES-ENCODE-ERROR or SERDES-DECODE-ERROR)
 for CONDITION, an ERROR that is not a SERDES-ERROR and was signalled in the
 backend call of ENCODE or DECODE for FORMAT (the argument as given). The new
 error's :CAUSE is CONDITION, and the restarts associated with CONDITION are
 associated with it too (file header, TRANSLATION). Does not return."
-  (declare (ignore condition type format))
-  (%serdes11-pending '%translate-backend-error))
+  (let ((e (make-condition type
+                           :cause condition
+                           :message (format nil "~A failed for ~S: ~A"
+                                            (ecase type
+                                              (serdes-encode-error "encode")
+                                              (serdes-decode-error "decode"))
+                                            format condition))))
+    (with-condition-restarts e (%associated-restarts condition e)
+      (error e))))
 
 (defun encode (value &key stream (format *serdes-format*))
   "Encode VALUE using the backend registered for FORMAT.

@@ -52,8 +52,3 @@
            #:map-events))
 
 (in-package #:serdes-protocol)
-
-(defun %serdes11-pending (name)
-  "Contract stub for serdes-protocol#11 (0.3.0). Every call is replaced by the
-implementation, then this function is deleted."
-  (error "serdes-protocol #11 pending: ~A" name))
