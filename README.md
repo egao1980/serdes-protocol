@@ -5,7 +5,7 @@ CLOS **serialize / deserialize** protocol for [cl-stack](https://github.com/egao
 | System | Role | OCI |
 |--------|------|-----|
 | `serdes-protocol` (`stack-serdes`) | Format registry, Gray streams, JSONL, event GFs, media types | **0.3.0** |
-| `sexp-protocol` | `:sexp` implementor (`prin1` / `read`, `*read-eval*` nil) | **0.2.0** |
+| `sexp-protocol` | `:sexp` implementor (`prin1` / `read`, `*read-eval*` nil) | **0.3.0** |
 
 JSON implementor: [`json-protocol`](https://github.com/egao1980/json-protocol) **0.2.0** (hard-depends this package).
 
