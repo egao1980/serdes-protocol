@@ -1,3 +1,64 @@
+;;;; serdes-protocol: the format registry and whole-value ENCODE / DECODE.
+;;;;
+;;;; Errors (0.3.0, CLHS 9; issue #11). ENCODE and DECODE make the backend
+;;;; call: find the backend for FORMAT (%BACKEND-FOR, which signals
+;;;; SERDES-UNKNOWN-FORMAT) and call BACKEND-ENCODE / BACKEND-DECODE on it. The
+;;;; call runs inside a HANDLER-BIND for ERROR; there is no HANDLER-CASE, so
+;;;; serdes unwinds nothing. For a condition C signalled during the call:
+;;;;   - C is not an ERROR (a warning, a SIGNAL of a plain condition): serdes
+;;;;     does nothing.
+;;;;   - C is a SERDES-ERROR (serdes's own, or one a backend signals): serdes
+;;;;     does nothing. C reaches the caller's handlers where it was signalled,
+;;;;     with the backend's restarts active. 0.2 unwound first, then signalled
+;;;;     C again from ENCODE (DECODE).
+;;;;   - any other ERROR: TRANSLATION, below.
+;;;; Handlers that the backend binds are more recent than the one ENCODE
+;;;; (DECODE) binds, so they see C first, and only they see it.
+;;;;
+;;;; TRANSLATION. The handler calls %TRANSLATE-BACKEND-ERROR, which does not
+;;;; return. It runs in C's dynamic environment, before anything unwinds, and
+;;;; signals with ERROR a fresh E of type SERDES-ENCODE-ERROR
+;;;; (SERDES-DECODE-ERROR) that has
+;;;;   :CAUSE    C itself (EQ),
+;;;;   :MESSAGE  (format nil "encode failed for ~S: ~A" FORMAT C), or "decode
+;;;;             failed for ~S: ~A" for DECODE, where FORMAT is the argument as
+;;;;             given (the 0.2 text).
+;;;; During that signal, every restart associated with C (CLHS 9.1.4.2.2, such
+;;;; as those a RESTART-CASE ties to C's ERROR form) is also associated with E
+;;;; (WITH-CONDITION-RESTARTS). Restarts that are not associated with any
+;;;; condition stay unassociated. For the handlers bound outside ENCODE
+;;;; (DECODE), this means:
+;;;;   - They see E and never C, most recent first. A HANDLER-CASE or
+;;;;     HANDLER-BIND for ERROR or CONDITION gets E, as in 0.2.
+;;;;   - The backend's restarts are active while they run. (invoke-restart
+;;;;     'name), (find-restart 'name e) and the restart functions given E, such
+;;;;     as (use-value v e) and (continue e), all reach them. So a handler for
+;;;;     SERDES-DECODE-ERROR can invoke a backend's skip restart.
+;;;;   - The backend's UNWIND-PROTECT cleanups run when a handler transfers
+;;;;     control, after that handler is called. 0.2 ran them before.
+;;;;   - If no handler transfers control, the debugger is entered with E and
+;;;;     the backend's restarts.
+;;;; A handler for the backend's own condition type that is bound around
+;;;; ENCODE (DECODE) is not called for a translated C. To act on that type,
+;;;; bind SERDES-ERROR and test (SERDES-ERROR-CAUSE E), or call BACKEND-DECODE
+;;;; (BACKEND-ENCODE) on FIND-BACKEND, which translates nothing. When a
+;;;; backend's recoverable conditions subclass SERDES-DECODE-ERROR
+;;;; (SERDES-ENCODE-ERROR), they pass through untouched, so handlers can bind
+;;;; their types directly.
+;;;; Nesting: an ENCODE or DECODE inside a backend call translates C itself.
+;;;; The outer call passes that E along untouched, because E is a SERDES-ERROR.
+;;;; Why C is not signalled to the outside first, with E only if C is
+;;;; declined: any outer handler that acts on every ERROR (Rove's OK and
+;;;; DEFTEST, a request loop's catch-all) would then take C, and a caller's
+;;;; handler for SERDES-DECODE-ERROR inside it would never run. Why C is not
+;;;; signalled after E is declined: a handler for C's type would then run only
+;;;; when no handler outside acts on E, which never happens under a test runner
+;;;; or a server.
+;;;;
+;;;; ENCODE-TO-OCTETS and DECODE-OCTETS go through ENCODE and DECODE. The
+;;;; stream, JSONL and event-parser functions (src/streams.lisp) call the
+;;;; backend directly and translate nothing.
+
 (in-package #:serdes-protocol)
 
 (defvar *serdes-format* :json
@@ -158,24 +219,29 @@ When ERRORP is true, signal SERDES-UNKNOWN-FORMAT when the registry has no backe
              *serdes-backend*)
         (find-backend normalized))))
 
+(defun %translate-backend-error (condition type format)
+  "Signal, with ERROR, a fresh TYPE (SERDES-ENCODE-ERROR or SERDES-DECODE-ERROR)
+for CONDITION, an ERROR that is not a SERDES-ERROR and was signalled in the
+backend call of ENCODE or DECODE for FORMAT (the argument as given). The new
+error's :CAUSE is CONDITION, and the restarts associated with CONDITION are
+associated with it too (file header, TRANSLATION). Does not return."
+  (declare (ignore condition type format))
+  (%serdes11-pending '%translate-backend-error))
+
 (defun encode (value &key stream (format *serdes-format*))
   "Encode VALUE using the backend registered for FORMAT.
-Returns a string unless STREAM is supplied."
-  (handler-case
-      (backend-encode (%backend-for format) value :stream stream)
-    (serdes-error (e) (error e))
-    (error (e)
-      (error 'serdes-encode-error
-             :message (format nil "encode failed for ~S: ~A" format e)))))
+Returns a string unless STREAM is supplied. Errors: file header."
+  (handler-bind ((error (lambda (c)
+                          (unless (typep c 'serdes-error)
+                            (%translate-backend-error c 'serdes-encode-error format)))))
+    (backend-encode (%backend-for format) value :stream stream)))
 
 (defun decode (source &key (format *serdes-format*))
-  "Decode SOURCE using the backend registered for FORMAT."
-  (handler-case
-      (backend-decode (%backend-for format) source)
-    (serdes-error (e) (error e))
-    (error (e)
-      (error 'serdes-decode-error
-             :message (format nil "decode failed for ~S: ~A" format e)))))
+  "Decode SOURCE using the backend registered for FORMAT. Errors: file header."
+  (handler-bind ((error (lambda (c)
+                          (unless (typep c 'serdes-error)
+                            (%translate-backend-error c 'serdes-decode-error format)))))
+    (backend-decode (%backend-for format) source)))
 
 (defun %octet-vector-p (value)
   (and (vectorp value)

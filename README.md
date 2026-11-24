@@ -4,7 +4,7 @@ CLOS **serialize / deserialize** protocol for [cl-stack](https://github.com/egao
 
 | System | Role | OCI |
 |--------|------|-----|
-| `serdes-protocol` (`stack-serdes`) | Format registry, Gray streams, JSONL, event GFs, media types | **0.2.2** |
+| `serdes-protocol` (`stack-serdes`) | Format registry, Gray streams, JSONL, event GFs, media types | **0.3.0** |
 | `sexp-protocol` | `:sexp` implementor (`prin1` / `read`, `*read-eval*` nil) | **0.2.0** |
 
 JSON implementor: [`json-protocol`](https://github.com/egao1980/json-protocol) **0.2.0** (hard-depends this package).
@@ -23,6 +23,8 @@ JSON implementor: [`json-protocol`](https://github.com/egao1980/json-protocol) *
 ```
 
 Implementors call `register-format` (optionally `:media-type` / `:binary`). Binary formats default Gray streams to `(unsigned-byte 8)`.
+
+**Errors** (0.3.0): `encode` / `decode` let a `serdes-error` through as signalled and turn any other backend `error` into `serdes-encode-error` / `serdes-decode-error`, signalled where the backend signalled it. The original is `serdes-error-cause`, and the backend's restarts stay active and associated, so a `handler-bind` around `decode` can invoke them: `(invoke-restart 'skip)`, `(use-value v e)`. The rules are in the header of `src/protocol.lisp`.
 
 
 Object streams without formats → [`io-protocol`](https://github.com/egao1980/io-protocol).
